@@ -1,0 +1,9 @@
+Name: hlist-utils
+Version: 0.0
+Cabal-Version:    >= 1.2
+Build-Type: Simple
+
+Library
+  Build-Depends:  base, HList
+  Exposed-modules: Data.HList.Utils
+
