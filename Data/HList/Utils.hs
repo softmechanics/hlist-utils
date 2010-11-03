@@ -105,6 +105,16 @@ instance (Apply f v v') => ApplyIfTrue HTrue f v v' where
 instance ApplyIfTrue HFalse f v v where
   applyIfTrue _ _ v = v
 
+-- | Conditional HList prepend
+class PrependIfTrue b e l l' | b e l -> l' where
+  prependIfTrue :: b -> e -> l -> l'
+
+instance PrependIfTrue HFalse e l l where
+  prependIfTrue _ _ l = l
+
+instance PrependIfTrue HTrue e l (HCons e l) where
+  prependIfTrue _ e l = HCons e l
+
 -- | HAll: HTrue if f evaluates to HTrue at every v in vs
 class HAll f vs r | f vs -> r
 instance HAll f HNil HTrue
@@ -153,3 +163,4 @@ instance (NotMemberOf e l) => HTMemberOfAssertion HFalse e l
 
 -- | Error message to display if AssertHTMemberOf evaluates to HFalse.  Intentionally no instances
 class NotMemberOf e l
+
