@@ -135,7 +135,21 @@ instance Construct HFalse where
   construct = hFalse
 
 -- | Function type wrapper around HTMember
-data HTMemberOf l = HTMemberOf l
+newtype HTMemberOf l = HTMemberOf l
 
 instance (HTMember e l b) => Apply (HTMemberOf l) e b where
   apply (HTMemberOf l) e = hTMember e l
+
+-- | Like HTMemberOf, but produces a type error if HFalse
+newtype AssertHTMemberOf l = AssertHTMemberOf l
+
+instance (HTMember e l b
+         ,HTMemberOfAssertion b e l
+         ) => Apply (AssertHTMemberOf l) e b
+
+class HTMemberOfAssertion b e l
+instance HTMemberOfAssertion HTrue e l
+instance (NotMemberOf e l) => HTMemberOfAssertion HFalse e l
+
+-- | Error message to display if AssertHTMemberOf evaluates to HFalse.  Intentionally no instances
+class NotMemberOf e l
