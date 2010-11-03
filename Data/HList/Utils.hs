@@ -115,6 +115,23 @@ instance PrependIfTrue HFalse e l l where
 instance PrependIfTrue HTrue e l (HCons e l) where
   prependIfTrue _ e l = HCons e l
 
+-- | Filter an HList
+class (HFoldr (HFilterF f) HNil l l'
+      ) => HFilter f l l' | f l -> l' where
+  hFilter :: f -> l -> l'
+
+instance (HFoldr (HFilterF f) HNil l l'
+         ) => HFilter f l l' where
+  hFilter f l = hFoldr (HFilterF f) HNil l
+
+newtype HFilterF f = HFilterF f
+
+instance (Apply f e b
+         ,HBool b
+         ,PrependIfTrue b e l l'
+         ) => Apply (HFilterF f) (e,l) l' where
+  apply (HFilterF f) (e,l) = prependIfTrue (apply f e) e l
+
 -- | HAll: HTrue if f evaluates to HTrue at every v in vs
 class HAll f vs r | f vs -> r
 instance HAll f HNil HTrue
