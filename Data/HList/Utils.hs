@@ -134,3 +134,8 @@ instance Construct HTrue where
 instance Construct HFalse where
   construct = hFalse
 
+-- | Function type wrapper around HTMember
+data HTMemberOf l = HTMemberOf l
+
+instance (HTMember e l b) => Apply (HTMemberOf l) e b where
+  apply (HTMemberOf l) e = hTMember e l
