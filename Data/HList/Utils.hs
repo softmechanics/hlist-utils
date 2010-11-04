@@ -161,6 +161,37 @@ instance Construct HTrue where
 instance Construct HFalse where
   construct = hFalse
 
+instance Construct HNil where
+  construct = hNil
+
+instance (Construct e
+         ,Construct l
+         ) => Construct (HCons e l) where
+  construct = HCons (construct::e) (construct::l)
+
+instance (Construct l
+         ,HRLabelSet l
+         ) => Construct (Record l) where
+  construct = mkRecord (construct::l)
+
+-- | Variant of Construct, which defaults to undefined
+class ConstructSpine a where
+  constructSpine :: a
+  constructSpine = undefined
+
+instance ConstructSpine HNil where
+  constructSpine = hNil
+
+instance (ConstructSpine e
+         ,ConstructSpine l
+         ) => ConstructSpine (HCons e l) where
+  constructSpine = HCons (constructSpine :: e) (constructSpine :: l)
+
+instance (ConstructSpine l
+         ,HRLabelSet l
+         ) => ConstructSpine (Record l) where
+  constructSpine = mkRecord (constructSpine :: l) 
+
 -- | Function type wrapper around HTMember
 newtype HTMemberOf l = HTMemberOf l
 
