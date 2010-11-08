@@ -31,13 +31,26 @@ instance (HMap f r r') => HMap f (Record r) (Record r') where
 instance (HReverse r r') => HReverse (Record r) (Record r') where
   hReverse (Record r) = Record $ hReverse r
 
+-- | Type-level function for HAppend
+data HAppendF = HAppendF
+
+instance (HAppend l1 l2 l3) => Apply HAppendF (l1,l2) l3 where
+  apply _ (l1,l2) = hAppend l1 l2
+
+-- | Concatenate an HList of HLists
+class (HFoldr HAppendF HNil ls l) => HConcat ls l | ls -> l where
+  hConcat :: ls -> l
+
+instance (HFoldr HAppendF HNil ls l) => HConcat ls l where
+  hConcat = hFoldr (undefined::HAppendF) HNil
+
 -- | Left-fold an HList using <*>
 data ApplicativeF = ApplicativeF
 
 instance (a ~ a'
-         ,b ~ b'
          ,f ~ f'
          ,f ~ f''
+         ,b ~ b'
          ,Applicative f
          ) => Apply ApplicativeF (f (a -> b) , f' a') (f'' b') where
   apply _ (f,e) = f <*> e
@@ -87,13 +100,40 @@ class ApplyAtLabel f lbl l l' | f lbl l -> l' where
 instance ApplyAtLabel f lbl HNil HNil where
   applyAtLabel _ _ _ = HNil
 
-instance (HEq lbl lbl' eq
-         ,ApplyIfTrue eq f v v'
+instance (ApplyIfLabeled f lbl e e'
          ,ApplyAtLabel f lbl l l'
-         ) => ApplyAtLabel f lbl (HCons (LVPair lbl' v) l) (HCons (LVPair lbl' v') l') where
-  applyAtLabel f lbl (HCons (LVPair v) l) = HCons (LVPair v') l'
-      where v' = applyIfTrue (undefined::eq) f v
+         ) => ApplyAtLabel f lbl (HCons e l) (HCons e' l') where
+  applyAtLabel f lbl (HCons e l) = HCons e' l'
+      where e' = applyIfLabeled f lbl e
             l' = applyAtLabel f lbl l
+
+-- | Apply a function to a single element if labeled
+class ApplyIfLabeled f lbl e e' where
+  applyIfLabeled :: f -> lbl -> e -> e'
+
+instance (Labeled lbl e eq
+         ,ExtractLabeled e v
+         ,ApplyIfTrue eq f v v'
+         ,UpdateLabeled e v' e'
+         ) => ApplyIfLabeled f lbl e e' where
+  applyIfLabeled f lbl e = updateLabeled e $ applyIfTrue (undefined::eq) f $ extractLabeled e
+
+-- | Label equality, abstracts away LVPair implementation
+class Labeled lbl t b | lbl t -> b
+instance HEq lbl lbl' eq => Labeled lbl (LVPair lbl' v) eq
+
+-- | Labeled value extraction, abstracts away LVPair implementation
+class ExtractLabeled t v | t -> v where
+  extractLabeled :: t -> v
+instance ExtractLabeled (LVPair l v) v where
+  extractLabeled (LVPair v) = v
+
+-- | Labeled value update, abstracts away LVPair implementation
+class UpdateLabeled t v t' | t v -> t' where
+  updateLabeled :: t -> v -> t'
+
+instance UpdateLabeled (LVPair l v) v' (LVPair l v') where
+  updateLabeled _ = LVPair
 
 -- | Conditional function application
 class ApplyIfTrue b f v v' | b f v -> v' where
@@ -191,6 +231,8 @@ instance (ConstructSpine l
          ,HRLabelSet l
          ) => ConstructSpine (Record l) where
   constructSpine = mkRecord (constructSpine :: l) 
+
+instance ConstructSpine (LVPair l v)
 
 -- | Function type wrapper around HTMember
 newtype HTMemberOf l = HTMemberOf l
